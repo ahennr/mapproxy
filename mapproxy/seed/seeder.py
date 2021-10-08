@@ -535,4 +535,3 @@ def seed_task(task, concurrency=2, dry_run=False, skip_geoms_for_last_levels=0,
     finally:
         tile_worker_pool.stop()
 
-

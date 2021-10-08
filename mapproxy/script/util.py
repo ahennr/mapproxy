@@ -73,7 +73,6 @@ def serve_develop_command(args):
         #############################################\
         """))
 
-
     if options.debug:
         setup_logging(level=logging.DEBUG)
     else:
@@ -142,6 +141,33 @@ def serve_multiapp_develop_command(args):
     run_simple(host, port, app, use_reloader=True, processes=1,
         threaded=True, passthrough_errors=True)
 
+def serve_seed_endpoint_command(args):
+    parser = optparse.OptionParser("usage: %prog serve-multiapp-develop [options] projects/")
+    parser.add_option("-b", "--bind",
+                      dest="address", default='127.0.0.1:9090',
+                      help="Server socket [127.0.0.1:9090]")
+    parser.add_option("--debug", default=False, action='store_true',
+                      dest="debug",
+                      help="Enable debug mode")
+    options, args = parser.parse_args(args)
+    host, port = parse_bind_address(options.address)
+
+    if len(args) != 2:
+        parser.print_help()
+        print("\nERROR: MapProxy configuration required.")
+        sys.exit(1)
+    mapproxy_conf = args[1]
+
+    from mapproxy.wsgiseedapp import make_wsgi_seed_app
+    from mapproxy.util.ext.serving import run_simple
+    from mapproxy.config.loader import ConfigurationError
+    try:
+        app = make_wsgi_seed_app(mapproxy_conf, debug=options.debug)
+    except ConfigurationError:
+        sys.exit(2)
+
+    run_simple(host, port, app, use_reloader=True, processes=1,
+               threaded=True, passthrough_errors=True)
 
 def parse_bind_address(address, default=('localhost', 8080)):
     """
@@ -281,6 +307,7 @@ class CreateCommand(object):
 
         return 0
 
+
 commands = {
     'serve-develop': {
         'func': serve_develop_command,
@@ -317,9 +344,12 @@ commands = {
     'defrag-compact-cache': {
         'func': defrag_command,
         'help': 'De-fragmentate compact caches.'
+    },
+    'serve-seed-endpoint': {
+        'func': serve_seed_endpoint_command,
+        'help': 'Serve seed REST endpoint'
     }
 }
-
 
 class NonStrictOptionParser(optparse.OptionParser):
     def _process_args(self, largs, rargs, values):
