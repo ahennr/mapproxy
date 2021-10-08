@@ -16,6 +16,8 @@ import time
 import signal
 import subprocess
 
+from werkzeug.exceptions import InternalServerError
+
 try:
     import thread
 except ImportError:
