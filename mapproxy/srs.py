@@ -46,7 +46,7 @@ def get_epsg_num(epsg_code):
     True
     """
     if isinstance(epsg_code, string_type):
-        if ':' in epsg_code and epsg_code.upper().startswith('EPSG'):
+        if ':' in epsg_code and epsg_code.upper().startswith(tuple(['EPSG', 'CRS'])):
             epsg_code = int(epsg_code.split(':')[1])
         elif epsg_code.isdigit():
             epsg_code = int(epsg_code)
