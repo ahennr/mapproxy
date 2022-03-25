@@ -47,6 +47,7 @@ def setup_logging(level=logging.INFO, format=None):
     ch.setFormatter(formatter)
     mapproxy_log.addHandler(ch)
 
+
 def serve_develop_command(args):
     parser = optparse.OptionParser("usage: %prog serve-develop [options] mapproxy.yaml")
     parser.add_option("-b", "--bind",
@@ -92,20 +93,21 @@ def serve_develop_command(args):
         try:
             from repoze.profile import ProfileMiddleware
             app = ProfileMiddleware(
-               app,
-               log_filename='/tmp/mapproxy_profile.log',
-               discard_first_request=True,
-               flush_at_shutdown=True,
-               path='/__profile__',
-               unwind=False,
+                app,
+                log_filename='/tmp/mapproxy_profile.log',
+                discard_first_request=True,
+                flush_at_shutdown=True,
+                path='/__profile__',
+                unwind=False,
             )
             print('Installed profiler at /__profile__')
         except ImportError:
             pass
 
     run_simple(host, port, app, use_reloader=True, processes=1,
-        threaded=True, passthrough_errors=True,
-        extra_files=extra_files)
+               threaded=True, passthrough_errors=True,
+               extra_files=extra_files)
+
 
 def serve_multiapp_develop_command(args):
     parser = optparse.OptionParser("usage: %prog serve-multiapp-develop [options] projects/")
@@ -140,8 +142,11 @@ def serve_multiapp_develop_command(args):
     app = make_wsgi_app(mapproxy_conf_dir, debug=options.debug)
 
     run_simple(host, port, app, use_reloader=True, processes=1,
-        threaded=True, passthrough_errors=True)
+               threaded=True, passthrough_errors=True)
 
+#####
+# enable endpoint to handle seed requests via REST
+#####
 def serve_seed_endpoint_command(args):
     parser = optparse.OptionParser("usage: %prog serve-multiapp-develop [options] projects/")
     parser.add_option("-b", "--bind",
@@ -170,6 +175,7 @@ def serve_seed_endpoint_command(args):
     run_simple(host, port, app, use_reloader=True, processes=1,
                threaded=True, passthrough_errors=True)
 
+
 def parse_bind_address(address, default=('localhost', 8080)):
     """
     >>> parse_bind_address('80')
@@ -195,24 +201,26 @@ def create_command(args):
     cmd = CreateCommand(args)
     cmd.run()
 
+
 class CreateCommand(object):
     templates = {
         'base-config': {},
         'wsgi-app': {},
         'log-ini': {},
+        'wsgi-seed-app': {},
     }
 
     def __init__(self, args):
         parser = optparse.OptionParser("usage: %prog create [options] [destination]")
         parser.add_option("-t", "--template", dest="template",
-            help="Create a configuration from this template.")
+                          help="Create a configuration from this template.")
         parser.add_option("-l", "--list-templates", dest="list_templates",
-            action="store_true", default=False,
-            help="List all available configuration templates.")
+                          action="store_true", default=False,
+                          help="List all available configuration templates.")
         parser.add_option("-f", "--mapproxy-conf", dest="mapproxy_conf",
-            help="Existing MapProxy configuration (required for some templates).")
+                          help="Existing MapProxy configuration (required for some templates).")
         parser.add_option("--force", dest="force", action="store_true",
-            default=False, help="Force operation (e.g. overwrite existing files).")
+                          default=False, help="Force operation (e.g. overwrite existing files).")
 
         self.options, self.args = parser.parse_args(args)
         self.parser = parser
@@ -265,13 +273,13 @@ class CreateCommand(object):
             self.log_error("%s already exists, use --force", app_filename)
             return 1
 
-        print("writing MapProxy app to %s" % (app_filename, ))
+        print("writing MapProxy app to %s" % (app_filename,))
 
         template_dir = self.template_dir()
         app_template = io.open(os.path.join(template_dir, 'config.wsgi'), encoding='utf-8').read()
         with io.open(app_filename, 'w', encoding='utf-8') as f:
             f.write(app_template % {'mapproxy_conf': mapproxy_conf,
-                'here': os.path.dirname(mapproxy_conf)})
+                                    'here': os.path.dirname(mapproxy_conf)})
 
         return 0
 
@@ -283,13 +291,13 @@ class CreateCommand(object):
         template_dir = self.template_dir()
 
         for filename in ('mapproxy.yaml', 'seed.yaml',
-            'full_example.yaml', 'full_seed_example.yaml'):
+                         'full_example.yaml', 'full_seed_example.yaml'):
             to = os.path.join(outdir, filename)
             from_ = os.path.join(template_dir, filename)
             if os.path.exists(to) and not self.options.force:
                 self.log_error("%s already exists, use --force", to)
                 return 1
-            print("writing %s" % (to, ))
+            print("writing %s" % (to,))
             shutil.copy(from_, to)
 
         return 0
@@ -305,6 +313,25 @@ class CreateCommand(object):
         log_template = io.open(os.path.join(template_dir, 'log.ini'), encoding='utf-8').read()
         with io.open(log_filename, 'w', encoding='utf-8') as f:
             f.write(log_template)
+
+        return 0
+
+    def template_wsgi_seed_app(self):
+        app_filename = self.args[1]
+        if '.' not in os.path.basename(app_filename):
+            app_filename += '.py'
+        mapproxy_conf = self.mapproxy_conf
+        if os.path.exists(app_filename) and not self.options.force:
+            self.log_error("%s already exists, use --force", app_filename)
+            return 1
+
+        print("writing MapProxy app with preconfigured seeding REST endpoint to %s" % (app_filename,))
+
+        template_dir = self.template_dir()
+        app_template = io.open(os.path.join(template_dir, 'config-seed.wsgi'), encoding='utf-8').read()
+        with io.open(app_filename, 'w', encoding='utf-8') as f:
+            f.write(app_template % {'mapproxy_conf': mapproxy_conf,
+                                    'here': os.path.dirname(mapproxy_conf)})
 
         return 0
 
@@ -352,6 +379,7 @@ commands = {
     }
 }
 
+
 def register_command(command_name, command_spec):
     """ Method used by plugins to register a command.
 
@@ -395,7 +423,7 @@ def print_items(data, title='Commands'):
     name_len = max(len(name) for name in data)
 
     if title:
-        print('%s:' % (title, ), file=sys.stdout)
+        print('%s:' % (title,), file=sys.stdout)
     for name, item in iteritems(data):
         help = item.get('help', '')
         name = ('%%-%ds' % name_len) % name
@@ -403,12 +431,13 @@ def print_items(data, title='Commands'):
             help = '  ' + help
         print('  %s%s' % (name, help), file=sys.stdout)
 
+
 def main():
 
     load_plugins()
 
     parser = NonStrictOptionParser("usage: %prog COMMAND [options]",
-        add_help_option=False)
+                                   add_help_option=False)
     options, args = parser.parse_args()
 
     if len(args) < 1 or args[0] in ('--help', '-h'):
@@ -431,6 +460,7 @@ def main():
 
     args = sys.argv[0:1] + sys.argv[2:]
     commands[command]['func'](args)
+
 
 if __name__ == '__main__':
     main()

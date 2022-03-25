@@ -14,11 +14,10 @@
 # limitations under the License.
 
 """
-The WSGI application.
+The seeder WSGI application.
 """
 from __future__ import print_function
 
-import io
 import json
 import logging
 import re
@@ -27,8 +26,13 @@ from mapproxy.config.loader import load_configuration, ConfigurationError
 from mapproxy.response import Response
 from mapproxy.wsgiapp import wrap_wsgi_debug
 
+from mapproxy.seed.cachelock import DummyCacheLocker
+from mapproxy.seed.config import SeedingConfiguration
+from mapproxy.seed.script import seed
+from mapproxy.seed.util import ProgressLog
+
 log = logging.getLogger('mapproxy.config')
-log_wsgiapp = logging.getLogger('mapproxy.wsgiapp')
+log_wsgi_app = logging.getLogger('mapproxy.wsgiapp')
 
 
 def make_wsgi_seed_app(services_conf=None, debug=False):
@@ -88,11 +92,6 @@ class SeedRestApp(object):
         seed_conf_complete = json.loads(br.read(request_body_size))
         seed_conf = seed_conf_complete['seedConfig']
         options = seed_conf_complete['config']
-
-        from mapproxy.seed.cachelock import DummyCacheLocker
-        from mapproxy.seed.config import SeedingConfiguration
-        from mapproxy.seed.script import seed
-        from mapproxy.seed.util import ProgressLog
 
         seed_cfg = SeedingConfiguration(seed_conf, self.mapproxy_conf)
         seed_tasks = seed_cfg.seeds()
