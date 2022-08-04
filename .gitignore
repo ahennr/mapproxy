@@ -17,4 +17,5 @@ nosetests*.xml
 .tox/
 
 .idea/
+*.iml
 venv/
